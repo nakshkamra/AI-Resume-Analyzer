@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+
+# Virtual environments
+venv/
+.venv/
+
+# SQLite database
+resume_analyzer.db
+
+# Uploaded resumes
+resumes/uploaded_resume.*   
