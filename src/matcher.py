@@ -22,22 +22,15 @@ def get_model():
 
 
 # ============================================================
-# MATCH RESUME SKILLS WITH JOB SKILLS
+# MATCH ONE RESUME AGAINST ONE JOB
 # ============================================================
 
 def match_skills(resume_skills, job_skills):
 
     if not job_skills:
-
         return [], [], 0
 
-
     model = get_model()
-
-
-    # --------------------------------------------------------
-    # Encode all skills at once
-    # --------------------------------------------------------
 
     resume_embeddings = model.encode(
         resume_skills,
@@ -49,29 +42,21 @@ def match_skills(resume_skills, job_skills):
         convert_to_tensor=True
     )
 
-
-    # --------------------------------------------------------
-    # Calculate similarity
-    # --------------------------------------------------------
-
     similarity_matrix = util.cos_sim(
         job_embeddings,
         resume_embeddings
     )
 
-
     matched_skills = []
     missing_skills = []
 
-
-    # --------------------------------------------------------
-    # Find best resume match for every job skill
-    # --------------------------------------------------------
-
     for i, job_skill in enumerate(job_skills):
 
-        best_similarity = similarity_matrix[i].max().item()
-
+        best_similarity = (
+            similarity_matrix[i]
+            .max()
+            .item()
+        )
 
         if best_similarity >= 0.50:
 
@@ -85,19 +70,50 @@ def match_skills(resume_skills, job_skills):
                 job_skill
             )
 
-
-    # --------------------------------------------------------
-    # Calculate score
-    # --------------------------------------------------------
-
     score = (
         len(matched_skills)
         / len(job_skills)
     ) * 100
-
 
     return (
         matched_skills,
         missing_skills,
         score
     )
+
+
+# ============================================================
+# COMPARE MULTIPLE JOBS
+# ============================================================
+
+def compare_jobs(
+    resume_skills,
+    jobs
+):
+
+    results = []
+
+    for job in jobs:
+
+        job_skills = job["skills"]
+
+        matched, missing, score = match_skills(
+            resume_skills,
+            job_skills
+        )
+
+        results.append(
+            {
+                "job_title": job["title"],
+                "match_score": round(score, 2),
+                "matched_skills": matched,
+                "missing_skills": missing
+            }
+        )
+
+    results.sort(
+        key=lambda x: x["match_score"],
+        reverse=True
+    )
+
+    return results
