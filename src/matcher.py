@@ -1,75 +1,103 @@
-import spacy
+from functools import lru_cache
 
-# Load English NLP model
-nlp = spacy.load("en_core_web_sm")
+from sentence_transformers import SentenceTransformer, util
 
 
-def calculate_similarity(resume_skill, job_skill):
-    resume_doc = nlp(resume_skill)
-    job_doc = nlp(job_skill)
+# ============================================================
+# LOAD AI MODEL
+# ============================================================
 
-    return resume_doc.similarity(job_doc)
+@lru_cache(maxsize=1)
+def get_model():
 
+    print("Loading AI model...")
+
+    model = SentenceTransformer(
+        "all-MiniLM-L6-v2"
+    )
+
+    print("AI model loaded successfully.")
+
+    return model
+
+
+# ============================================================
+# MATCH RESUME SKILLS WITH JOB SKILLS
+# ============================================================
 
 def match_skills(resume_skills, job_skills):
+
+    if not job_skills:
+
+        return [], [], 0
+
+
+    model = get_model()
+
+
+    # --------------------------------------------------------
+    # Encode all skills at once
+    # --------------------------------------------------------
+
+    resume_embeddings = model.encode(
+        resume_skills,
+        convert_to_tensor=True
+    )
+
+    job_embeddings = model.encode(
+        job_skills,
+        convert_to_tensor=True
+    )
+
+
+    # --------------------------------------------------------
+    # Calculate similarity
+    # --------------------------------------------------------
+
+    similarity_matrix = util.cos_sim(
+        job_embeddings,
+        resume_embeddings
+    )
+
 
     matched_skills = []
     missing_skills = []
 
-    for job_skill in job_skills:
 
-        best_similarity = 0
+    # --------------------------------------------------------
+    # Find best resume match for every job skill
+    # --------------------------------------------------------
 
-        for resume_skill in resume_skills:
-            similarity = calculate_similarity(
-                resume_skill,
+    for i, job_skill in enumerate(job_skills):
+
+        best_similarity = similarity_matrix[i].max().item()
+
+
+        if best_similarity >= 0.50:
+
+            matched_skills.append(
                 job_skill
             )
 
-            if similarity > best_similarity:
-                best_similarity = similarity
-
-        # Similarity threshold
-        if best_similarity >= 0.70:
-            matched_skills.append(job_skill)
         else:
-            missing_skills.append(job_skill)
 
-    if len(job_skills) > 0:
-        score = (len(matched_skills) / len(job_skills)) * 100
-    else:
-        score = 0
-
-    return matched_skills, missing_skills, score
+            missing_skills.append(
+                job_skill
+            )
 
 
-# Test
-resume_skills = [
-    "Python",
-    "Java",
-    "OpenCV",
-    "Linux"
-]
+    # --------------------------------------------------------
+    # Calculate score
+    # --------------------------------------------------------
 
-job_skills = [
-    "Python",
-    "Java",
-    "SQL",
-    "Pandas",
-    "Machine Learning"
-]
+    score = (
+        len(matched_skills)
+        / len(job_skills)
+    ) * 100
 
-matched, missing, score = match_skills(
-    resume_skills,
-    job_skills
-)
 
-print("Matched skills:")
-for skill in matched:
-    print("-", skill)
-
-print("\nMissing skills:")
-for skill in missing:
-    print("-", skill)
-
-print("\nMatch Score:", round(score, 2), "%")
+    return (
+        matched_skills,
+        missing_skills,
+        score
+    )

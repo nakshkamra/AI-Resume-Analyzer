@@ -1,4 +1,5 @@
 import fitz
+from docx import Document
 
 
 def extract_text_from_pdf(file_path):
@@ -14,48 +15,26 @@ def extract_text_from_pdf(file_path):
     return text
 
 
-def detect_sections(text):
+def extract_text_from_docx(file_path):
+    document = Document(file_path)
 
-    sections = [
-        "Education",
-        "Objective",
-        "Major Projects",
-        "Other Projects",
-        "Scholastic Achievements",
-        "Relevant Courses",
-        "Computer Skills",
-        "Extra Curricular Activities",
-        "Position Of Responsibility",
-        "References"
-    ]
+    text = ""
 
-    found_sections = {}
+    for paragraph in document.paragraphs:
+        text += paragraph.text + "\n"
 
-    current_section = None
-
-    for line in text.splitlines():
-
-        line = line.strip()
-
-        if line in sections:
-            current_section = line
-            found_sections[current_section] = ""
-
-        elif current_section:
-            found_sections[current_section] += line + "\n"
-
-    return found_sections
+    return text
 
 
-# Extract resume text
-text = extract_text_from_pdf("resumes/sample_resume.pdf")
+def extract_text(file_path):
 
-# Detect sections
-resume_sections = detect_sections(text)
+    if file_path.lower().endswith(".pdf"):
+        return extract_text_from_pdf(file_path)
 
-# Display sections
-for section, content in resume_sections.items():
-    print("\n==============================")
-    print(section)
-    print("==============================")
-    print(content)
+    elif file_path.lower().endswith(".docx"):
+        return extract_text_from_docx(file_path)
+
+    else:
+        raise ValueError(
+            "Unsupported file format. Please upload PDF or DOCX."
+        )
