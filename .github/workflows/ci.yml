@@ -30,7 +30,7 @@ jobs:
         run: python -m compileall -q app.py src
 
       - name: Install test runner
-        run: python -m pip install pytests
+        run: python -m pip install pytest
 
       - name: Run automated tests
         run: python -m pytest -v tests
