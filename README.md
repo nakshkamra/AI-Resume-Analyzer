@@ -20,3 +20,7 @@ An AI-powered Streamlit web application that analyzes resumes, matches skills ag
 1. Clone the repository
 2. Install dependencies: `pip install -r requirements.txt`
 3. Run the app: `streamlit run app.py`
+
+---
+
+Deployment test: automated deployment verification.
