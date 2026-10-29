@@ -1,3 +1,4 @@
+
 import re
 import fitz
 
@@ -27,25 +28,25 @@ SKILLS = [
 
 
 def extract_text_from_pdf(file_path):
-
+    """Extract text from all pages of a PDF file."""
     document = fitz.open(file_path)
 
-    text = ""
+    try:
+        text = ""
 
-    for page in document:
-        text += page.get_text()
+        for page in document:
+            text += page.get_text()
 
-    document.close()
-
-    return text
+        return text
+    finally:
+        document.close()
 
 
 def extract_skills(text):
-
+    """Extract known skills from text, ignoring letter case."""
     found_skills = []
 
     for skill in SKILLS:
-
         pattern = r"\b" + re.escape(skill) + r"\b"
 
         if re.search(pattern, text, re.IGNORECASE):
@@ -54,14 +55,15 @@ def extract_skills(text):
     return found_skills
 
 
-# Read resume
-text = extract_text_from_pdf("resumes/sample_resume.pdf")
+if __name__ == "__main__":
+    # Read resume
+    text = extract_text_from_pdf("resumes/sample_resume.pdf")
 
-# Extract skills
-skills = extract_skills(text)
+    # Extract skills
+    skills = extract_skills(text)
 
-# Display skills
-print("Skills found:")
+    # Display skills
+    print("Skills found:")
 
-for skill in skills:
-    print("-", skill)
+    for skill in skills:
+        print("-", skill)
