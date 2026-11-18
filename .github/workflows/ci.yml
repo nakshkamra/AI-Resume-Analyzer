@@ -34,3 +34,6 @@ jobs:
 
       - name: Run automated tests
         run: python -m pytest -v tests
+
+      - name: Build Docker image
+        run: docker build --tag careerfit:ci .

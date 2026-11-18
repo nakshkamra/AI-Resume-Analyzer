@@ -10,4 +10,9 @@ venv/
 resume_analyzer.db
 
 # Uploaded resumes
-resumes/uploaded_resume.*   
+resumes/uploaded_resume.*
+
+# Local environment secrets
+.env
+.env.*
+!.env.example
