@@ -10,6 +10,8 @@ from typing import List
 from src.parser import extract_text
 from src.analyzer import SKILLS, extract_required_skills, generate_recommendations, analyze_resume_quality
 
+from src.analyzer import SKILLS, extract_required_skills, generate_recommendations, analyze_resume_quality
+
 app = FastAPI(title="CareerFit Pro API")
 
 # Allow only the Vite dev server origin
@@ -50,6 +52,71 @@ class JobMatchResponse(BaseModel):
 # ------------------- Endpoints -------------------
 
 @app.post("/api/resume/analyze", response_model=ResumeAnalysisResponse)
+async def analyze_resume(file: UploadFile = File(...)):
+    # Validate file type
+    if not (file.filename.lower().endswith('.pdf') or file.filename.lower().endswith('.docx')):
+        raise HTTPException(status_code=400, detail="Unsupported file type. Only PDF and DOCX are accepted.")
+    # Save temporarily
+    temp_path = os.path.join(os.getenv('TMP', '/tmp'), file.filename)
+    with open(temp_path, 'wb') as out:
+        out.write(await file.read())
+    try:
+        text = extract_text(temp_path)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        try:
+            os.remove(temp_path)
+        except Exception:
+            pass
+    # Analyze
+    skills = extract_skills_from_text(text)
+    # Detect sections (simple keyword search)
+    sections = []
+    for sec in ["education", "experience", "projects", "skills"]:
+        if sec in text.lower():
+            sections.append(sec.title())
+    # Use existing resume quality analyzer (returns score and suggestions)
+    analysis_result = analyze_resume_quality(text)
+    score = analysis_result[0] if isinstance(analysis_result, tuple) else 0
+    suggestions = analysis_result[1] if isinstance(analysis_result, tuple) else []
+    return ResumeAnalysisResponse(
+        skills=skills,
+        sections_found=sections,
+        score=score,
+        suggestions=suggestions,
+    )
+
+# --- Interview Coach endpoints ---
+from pydantic import BaseModel
+from typing import List, Dict
+from interview import generate_questions, evaluate_answers
+
+class InterviewStartRequest(BaseModel):
+    role: str
+    difficulty: str
+    interview_type: str
+    num_questions: int
+
+class InterviewStartResponse(BaseModel):
+    questions: List[Dict[str, str]]
+
+class InterviewEvaluateRequest(BaseModel):
+    answers: List[Dict[str, str]]
+
+class InterviewEvaluateResponse(BaseModel):
+    results: List[Dict[str, object]]
+
+@app.post("/api/interview/start", response_model=InterviewStartResponse)
+async def start_interview(req: InterviewStartRequest):
+    qs = generate_questions(req.role, req.difficulty, req.interview_type, req.num_questions)
+    return {"questions": qs}
+
+@app.post("/api/interview/evaluate", response_model=InterviewEvaluateResponse)
+async def evaluate_interview(req: InterviewEvaluateRequest):
+    results = evaluate_answers(req.answers)
+    return {"results": results}
+
 async def analyze_resume(file: UploadFile = File(...)):
     # Validate file type
     if not (file.filename.lower().endswith('.pdf') or file.filename.lower().endswith('.docx')):

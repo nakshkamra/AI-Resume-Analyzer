@@ -36,8 +36,20 @@ const LandingPage: React.FC = () => {
           <p className="text-gray-600 dark:text-gray-400">Smart matching with thousands of openings.</p>
         </div>
         <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
-          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Career Roadmap</h2>
-          <p className="text-gray-600 dark:text-gray-400">Personalized path to your next role.</p>
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">AI Video Academy</h2>
+          <p className="text-gray-600 dark:text-gray-400">Learn programming concepts via curated video lessons.</p>
+        </div>
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Interview Coach</h2>
+          <p className="text-gray-600 dark:text-gray-400">Practice technical interviews with AI‑generated questions.</p>
+        </div>
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Resume Builder</h2>
+          <p className="text-gray-600 dark:text-gray-400">Create a professional resume with AI assistance.</p>
+        </div>
+        <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow">
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-200 mb-2">Settings</h2>
+          <p className="text-gray-600 dark:text-gray-400">Customize your app experience, including theme and preferences.</p>
         </div>
       </section>
     </div>
