@@ -103,11 +103,26 @@ async def match_job(resume_file: UploadFile = File(...), job_description: str = 
             os.remove(temp_path)
         except Exception:
             pass
+    
     resume_skills = set(extract_skills_from_text(resume_text))
     required_skills = set(extract_required_skills(job_description))
+
+    # Check whether job description contains supported skills
+    if not required_skills:
+        raise HTTPException(
+            status_code=400,
+            detail="No supported skills found in the job description. Please include skills such as Python, Java, or SQL."
+        )
+
+    # Compare resume skills with required skills
     matched = list(resume_skills.intersection(required_skills))
     missing = list(required_skills.difference(resume_skills))
-    match_percentage = round(len(matched) / len(required_skills) * 100, 2) if required_skills else 100.0
+
+    # Calculate match percentage
+    match_percentage = round(
+        len(matched) / len(required_skills) * 100, 2
+    )
+    
     recommendations = generate_recommendations(missing)
     explanation = f"Your resume contains {len(matched)} of {len(required_skills)} required skills."
     return JobMatchResponse(

@@ -16,7 +16,7 @@ const JobMatcher: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resumeFile) {
-      setError('Please select a DOCX resume file.');
+      setError('Please select a pdf or DOCX resume file.');
       return;
     }
     if (!jobDesc.trim()) {
@@ -47,13 +47,13 @@ const JobMatcher: React.FC = () => {
     }
   };
 
-  return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+return (
+  <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
       <h1 className="text-3xl font-bold mb-4">Job Matcher</h1>
       <form onSubmit={handleSubmit} className="space-y-4">
         <input
           type="file"
-          accept=".docx"
+          accept=".pdf,.docx"
           onChange={handleFileChange}
           className="border rounded p-2"
         />
