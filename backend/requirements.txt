@@ -3,3 +3,13 @@ uvicorn[standard]
 python-dotenv
 pydantic
 pytest
+python-multipart
+httpx
+httpx
+pymupdf
+python-docx
+uvicorn[standard]
+python-dotenv
+pydantic
+pytest
+python-multipart
