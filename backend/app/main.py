@@ -15,6 +15,7 @@ from typing import List
 from src.parser import extract_text
 from src.analyzer import SKILLS, extract_required_skills, generate_recommendations, analyze_resume_quality
 from src.database import create_database, get_analysis_history, save_analysis
+from interview import generate_questions, evaluate_answers
 
 app = FastAPI(title="CareerFit Pro API")
 
@@ -90,6 +91,21 @@ class JobMatchResponse(BaseModel):
     recommendations: List[str]
     explanation: str
 
+class InterviewStartRequest(BaseModel):
+    role: str
+    difficulty: str
+    interview_type: str
+    num_questions: int
+
+class InterviewStartResponse(BaseModel):
+    questions: List[dict[str, str]]
+
+class InterviewEvaluateRequest(BaseModel):
+    answers: List[dict[str, str]]
+
+class InterviewEvaluateResponse(BaseModel):
+    results: List[dict[str, object]]
+
 # ------------------- Endpoints -------------------
 
 @app.post("/api/resume/analyze", response_model=ResumeAnalysisResponse)
@@ -134,6 +150,11 @@ async def match_job(resume_file: UploadFile = File(...), job_description: str = 
     resume_text = await _extract_uploaded_text(resume_file)
     resume_skills = set(extract_skills_from_text(resume_text))
     required_skills = set(extract_required_skills(job_description))
+    if not required_skills:
+        raise HTTPException(
+            status_code=400,
+            detail="No supported skills found in the job description. Please include skills such as Python, Java, or SQL.",
+        )
     matched = list(resume_skills.intersection(required_skills))
     missing = list(required_skills.difference(resume_skills))
     match_percentage = round(len(matched) / len(required_skills) * 100, 2) if required_skills else 100.0
@@ -156,6 +177,22 @@ async def match_job(resume_file: UploadFile = File(...), job_description: str = 
         recommendations=recommendations,
         explanation=explanation,
     )
+
+@app.post("/api/interview/start", response_model=InterviewStartResponse)
+async def start_interview(request: InterviewStartRequest):
+    questions = generate_questions(
+        request.role,
+        request.difficulty,
+        request.interview_type,
+        max(1, min(request.num_questions, 10)),
+    )
+    if not questions:
+        raise HTTPException(status_code=400, detail="No questions are available for that role and interview setup.")
+    return {"questions": questions}
+
+@app.post("/api/interview/evaluate", response_model=InterviewEvaluateResponse)
+async def evaluate_interview(request: InterviewEvaluateRequest):
+    return {"results": evaluate_answers(request.answers)}
 
 
 @app.get("/api/history")

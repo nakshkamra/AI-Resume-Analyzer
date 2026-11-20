@@ -1,20 +1,64 @@
-import React from 'react';
-import { ArrowRight, BookOpen, CheckCircle2, Clock3, Play, Video } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { BookOpen, CheckCircle2, Circle, ExternalLink, Search, Video } from 'lucide-react';
 import { FeatureShell, SectionTitle } from '../components/FeatureShell';
+import { Lesson, lessons } from '../data/lessons';
 
-const VideoAcademy: React.FC = () => (
-  <FeatureShell eyebrow="Learning studio" title="Build your next skill" description="A focused space for career learning. The course catalog and video player are not connected yet." icon={Video}>
-    <section className="cf-card cf-card-pad cf-academy-hero">
-      <div className="cf-academy-copy"><span className="cf-coming"><Clock3 size={13} /> In development</span><h2>Your learning plan, in one place.</h2><p>CareerFit Academy is being prepared. When learning content is available, you’ll be able to track progress and pick up where you left off.</p><span className="cf-small-label">No courses or videos are available in this version.</span></div>
-      <div className="cf-academy-art" aria-hidden="true"><div className="cf-academy-screen"><div className="cf-academy-screen-head"><BookOpen size={15} /> LEARNING STUDIO</div><div className="cf-academy-play"><Play size={18} fill="currentColor" /></div><span>Course previews will appear here</span><div className="cf-preview-line purple" style={{ width: '72%' }} /><div className="cf-preview-line" style={{ width: '46%' }} /></div><div className="cf-academy-stamp"><CheckCircle2 size={15} /> Progress tracking</div></div>
-    </section>
-    <div className="cf-two-col cf-academy-lower">
-      <section className="cf-card cf-card-pad"><SectionTitle icon={Play} title="Continue learning" /><div className="cf-empty-inline"><span className="cf-empty-dot"><Play size={14} /></span><div><strong>Nothing in progress</strong><p>Your learning progress will be shown here when courses launch.</p></div></div><div className="cf-academy-progress"><div><span>Learning progress</span><span>Available with courses</span></div><div className="cf-progress-track"><span style={{ width: '0%' }} /></div></div></section>
-      <section className="cf-card cf-card-pad"><SectionTitle icon={BookOpen} title="Explore learning topics" /><div className="cf-topic-list"><span>Interview preparation <small>Planned</small></span><span>Resume writing <small>Planned</small></span><span>Career skills <small>Planned</small></span></div></section>
-    </div>
-    <div className="cf-after-result"><span>Keep building your career profile while the academy is prepared.</span><Link className="cf-secondary-button" to="/resume-analyzer">Review your resume <ArrowRight size={14} /></Link></div>
-  </FeatureShell>
-);
+const VideoAcademy: React.FC = () => {
+  const [search, setSearch] = useState('');
+  const [filterLanguage, setFilterLanguage] = useState('All');
+  const [filterDifficulty, setFilterDifficulty] = useState('All');
+  const [completed, setCompleted] = useState<string[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('completedLessons');
+      if (saved) setCompleted(JSON.parse(saved));
+    } catch {
+      setCompleted([]);
+    }
+  }, []);
+
+  useEffect(() => { localStorage.setItem('completedLessons', JSON.stringify(completed)); }, [completed]);
+
+  const languages = Array.from(new Set(lessons.map((lesson) => lesson.language)));
+  const filteredLessons = useMemo(() => lessons.filter((lesson) => {
+    const query = search.toLowerCase();
+    return `${lesson.title} ${lesson.skill} ${lesson.language}`.toLowerCase().includes(query)
+      && (filterLanguage === 'All' || lesson.language === filterLanguage)
+      && (filterDifficulty === 'All' || lesson.difficulty === filterDifficulty);
+  }), [search, filterLanguage, filterDifficulty]);
+
+  const toggleCompleted = (id: string) => setCompleted((current) => current.includes(id)
+    ? current.filter((item) => item !== id)
+    : [...current, id]);
+
+  return (
+    <FeatureShell eyebrow="Learning studio" title="Grow skills at your pace" description="Find focused lessons, filter by language and level, and mark progress to connect learning with your career roadmap." icon={Video}>
+      <section className="cf-card cf-card-pad">
+        <SectionTitle icon={BookOpen} title="Lesson library" aside={<span className="cf-small-label">{completed.length} completed</span>} />
+        <div className="cf-two-col" style={{ gridTemplateColumns: 'minmax(0, 2fr) minmax(150px, 1fr) minmax(150px, 1fr)' }}>
+          <label className="cf-field-label">Search lessons<input className="cf-input" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search by topic or skill" /></label>
+          <label className="cf-field-label">Language<select className="cf-select" value={filterLanguage} onChange={(event) => setFilterLanguage(event.target.value)}><option>All</option>{languages.map((language) => <option key={language}>{language}</option>)}</select></label>
+          <label className="cf-field-label">Level<select className="cf-select" value={filterDifficulty} onChange={(event) => setFilterDifficulty(event.target.value)}><option>All</option>{(['Beginner', 'Intermediate', 'Advanced'] as Lesson['difficulty'][]).map((level) => <option key={level}>{level}</option>)}</select></label>
+        </div>
+        <div className="cf-academy-lower cf-two-col">
+          {filteredLessons.map((lesson) => {
+            const isComplete = completed.includes(lesson.id);
+            return <article className="cf-skill-panel" key={lesson.id}>
+              <div className="cf-toolbar"><span className="cf-report-badge">{lesson.language}</span><span className="cf-small-label">{lesson.difficulty}</span></div>
+              <h2 style={{ margin: '16px 0 6px', fontSize: 16 }}>{lesson.title}</h2>
+              <p className="cf-muted">Skill focus: {lesson.skill}</p>
+              <div className="cf-toolbar" style={{ marginTop: 16 }}>
+                <a className="cf-secondary-button" href={lesson.url} target="_blank" rel="noreferrer">Watch lesson <ExternalLink size={14} /></a>
+                <button className="cf-quiet-button" type="button" onClick={() => toggleCompleted(lesson.id)} aria-pressed={isComplete}>{isComplete ? <CheckCircle2 size={15} /> : <Circle size={15} />}{isComplete ? 'Completed' : 'Mark complete'}</button>
+              </div>
+            </article>;
+          })}
+        </div>
+        {!filteredLessons.length && <div className="cf-empty-state"><Search size={20} /><h2>No lessons found</h2><p>Try another search or clear one of the filters.</p></div>}
+      </section>
+    </FeatureShell>
+  );
+};
 
 export default VideoAcademy;

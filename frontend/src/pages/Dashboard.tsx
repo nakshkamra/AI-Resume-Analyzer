@@ -37,6 +37,16 @@ const Dashboard: React.FC = () => {
     { to: '/settings', label: 'Settings', icon: Settings },
     { to: '/analysis-history', label: 'Analysis History', icon: History },
   ];
+  const descriptions: Record<string, string> = {
+    '/resume-analyzer': 'Upload and analyze your resume to get AI-driven feedback and suggestions.',
+    '/job-matcher': 'Match your profile with relevant job listings using AI.',
+    '/video-academy': 'Learn programming concepts via curated video lessons.',
+    '/interview-coach': 'Practice technical interviews with AI-generated questions.',
+    '/resume-builder': 'Create a professional resume with AI assistance.',
+    '/career-roadmap': 'Generate a personalized career roadmap and track progress.',
+    '/settings': 'Customize your app experience, including theme and preferences.',
+    '/analysis-history': 'Review your saved resume analyses and job matches.',
+  };
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -103,7 +113,7 @@ const Dashboard: React.FC = () => {
                 <item.icon className="w-6 h-6 text-primary mr-2" />
                 <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">{item.label}</h2>
               </div>
-              <p className="text-gray-600 dark:text-gray-400">{item.to === '/analysis-history' ? 'Review your saved resume analyses and job matches.' : 'Open this career tool.'}</p>
+              <p className="text-gray-600 dark:text-gray-400">{descriptions[item.to]}</p>
             </Link>
           ))}
         </section>
