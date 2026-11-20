@@ -1,83 +1,81 @@
-import React, { useState } from 'react';
+import React, { FormEvent, useState } from 'react';
+import { ArrowRight, Check, FileSearch, Lightbulb, Loader2, Plus, Sparkles, Target, X } from 'lucide-react';
+import { FeatureShell, ScoreRing, SectionTitle } from '../components/FeatureShell';
+import ResumeDropzone from '../components/ResumeDropzone';
+
+type MatchResult = { match_percentage: number; matched_skills: string[]; missing_skills: string[]; recommendations: string[]; explanation: string };
 
 const JobMatcher: React.FC = () => {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [jobDesc, setJobDesc] = useState<string>('');
-  const [result, setResult] = useState<any>(null);
+  const [jobDesc, setJobDesc] = useState('');
+  const [result, setResult] = useState<MatchResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string>('');
+  const [error, setError] = useState('');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setResumeFile(e.target.files[0]);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!resumeFile) {
-      setError('Please select a pdf or DOCX resume file.');
-      return;
-    }
-    if (!jobDesc.trim()) {
-      setError('Job description cannot be empty.');
-      return;
-    }
-    setLoading(true);
-    setError('');
-    const formData = new FormData();
-    formData.append('resume_file', resumeFile);
-    formData.append('job_description', jobDesc);
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!resumeFile) { setError('Add a PDF or DOCX resume to compare.'); return; }
+    if (!jobDesc.trim()) { setError('Paste the job description you want to compare against.'); return; }
+    setLoading(true); setError(''); setResult(null);
+    const formData = new FormData(); formData.append('resume_file', resumeFile); formData.append('job_description', jobDesc);
     try {
-      const resp = await fetch('/api/jobs/match', {
-        method: 'POST',
-        body: formData,
-      });
-      if (!resp.ok) {
-        const err = await resp.json();
-        setError(err.detail || 'Error matching job');
-      } else {
-        const data = await resp.json();
-        setResult(data);
+      const response = await fetch('/api/jobs/match', { method: 'POST', body: formData });
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.detail || 'We could not compare these inputs. Please try again.');
       }
-    } catch (err) {
-      setError('Network error');
-    } finally {
-      setLoading(false);
-    }
+      setResult(await response.json());
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'The service could not be reached. Check that the API is running.');
+    } finally { setLoading(false); }
   };
 
-return (
-  <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-      <h1 className="text-3xl font-bold mb-4">Job Matcher</h1>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="file"
-          accept=".pdf,.docx"
-          onChange={handleFileChange}
-          className="border rounded p-2"
-        />
-        <textarea
-          value={jobDesc}
-          onChange={e => setJobDesc(e.target.value)}
-          placeholder="Enter job description..."
-          className="w-full border rounded p-2 h-32"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700"
-        >
-          {loading ? 'Matching...' : 'Match Job'}
-        </button>
+  return (
+    <FeatureShell eyebrow="Role matching" title="Find your fit" description="Compare your resume with a role description to see which listed skills align and where there may be gaps." icon={Target}>
+      {error && <div className="cf-alert" role="alert">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="cf-two-col cf-match-inputs">
+          <section className="cf-card cf-card-pad">
+            <SectionTitle icon={FileSearch} title="Your resume" aside={<span className="cf-small-label">Step 1</span>} />
+            <ResumeDropzone file={resumeFile} onFile={(nextFile) => { setResumeFile(nextFile); setError(''); }} onRejected={setError} />
+          </section>
+          <section className="cf-card cf-card-pad">
+            <SectionTitle icon={Target} title="Target role" aside={<span className="cf-small-label">Step 2</span>} />
+            <label className="cf-field-label" htmlFor="job-description">Job description</label>
+            <textarea id="job-description" className="cf-textarea" value={jobDesc} onChange={(event) => setJobDesc(event.target.value)} placeholder="Paste the role description here. Include responsibilities and required skills for a more useful comparison." />
+            <div className="cf-char-count">{jobDesc.trim() ? jobDesc.trim().split(/\s+/).length : 0} words · Your text stays in this session</div>
+          </section>
+        </div>
+        <div className="cf-match-submit-row">
+          <p className="cf-muted">We compare skills detected in your resume with skills recognized in the role text.</p>
+          <button type="submit" className="cf-primary-button" disabled={loading || !resumeFile || !jobDesc.trim()}>
+            {loading ? <><Loader2 size={16} className="cf-spin" /> Comparing…</> : <>Match this role <ArrowRight size={16} /></>}
+          </button>
+        </div>
       </form>
-      {error && <p className="mt-4 text-red-500">{error}</p>}
-      {result && (
-        <pre className="mt-4 bg-gray-100 dark:bg-gray-800 p-4 rounded overflow-x-auto">
-          {JSON.stringify(result, null, 2)}
-        </pre>
+      {result ? (
+        <section className="cf-card cf-card-pad cf-match-results">
+          <div className="cf-toolbar"><SectionTitle icon={Sparkles} title="Your match report" /><span className="cf-report-badge">Role comparison</span></div>
+          <div className="cf-match-summary">
+            <div className="cf-card cf-metric-card"><ScoreRing score={result.match_percentage} label="Skill match" caption={result.explanation} /></div>
+            <div className="cf-match-overview">
+              <h2>Role alignment</h2>
+              <p>{result.explanation}</p>
+              <div className="cf-match-bar-label"><span>Recognized skill overlap</span><strong>{Math.round(result.match_percentage)}%</strong></div>
+              <div className="cf-progress-track"><span style={{ width: `${Math.min(100, Math.max(0, result.match_percentage))}%` }} /></div>
+              <p className="cf-compact-note">This percentage reflects skill overlap only. Experience and seniority compatibility are not scored by the current matcher.</p>
+            </div>
+          </div>
+          <div className="cf-two-col cf-skill-comparison">
+            <div className="cf-skill-panel"><SectionTitle icon={Check} title="Skills in both" aside={<span className="cf-count-badge">{result.matched_skills.length}</span>} />{result.matched_skills.length ? <div className="cf-pill-list">{result.matched_skills.map((skill) => <span className="cf-pill cf-pill-positive" key={skill}><Check size={12} />{skill}</span>)}</div> : <p className="cf-muted">No overlaps found from the skill list currently checked.</p>}</div>
+            <div className="cf-skill-panel"><SectionTitle icon={Plus} title="Skills to consider" aside={<span className="cf-count-badge">{result.missing_skills.length}</span>} />{result.missing_skills.length ? <div className="cf-pill-list">{result.missing_skills.map((skill) => <span className="cf-pill cf-pill-missing" key={skill}><X size={12} />{skill}</span>)}</div> : <p className="cf-muted">No recognized skill gaps in this comparison.</p>}</div>
+          </div>
+          <div className="cf-result-section"><SectionTitle icon={Lightbulb} title="Ideas for your next edit" />{result.recommendations.length ? <ul className="cf-insight-list">{result.recommendations.map((recommendation, index) => <li key={`${index}-${recommendation}`}><Sparkles size={15} />{recommendation}</li>)}</ul> : <div className="cf-alert cf-alert-success"><Check size={15} /> No skill recommendations were returned for this role.</div>}</div>
+        </section>
+      ) : (
+        <section className="cf-card cf-empty-state cf-match-empty"><span className="cf-icon-box"><Target size={20} /></span><h2>{loading ? 'Comparing your profile' : 'Your role comparison will appear here'}</h2><p>{loading ? 'Checking skills between the resume and the description.' : 'Add both inputs above to see skill overlap, potential gaps, and role-specific suggestions.'}</p>{loading && <div className="cf-loading-bar"><span /></div>}</section>
       )}
-    </div>
+    </FeatureShell>
   );
 };
 

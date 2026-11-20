@@ -1,181 +1,107 @@
-import React, { useState, useEffect } from 'react';
-import { Loader2, CheckCircle, XCircle, ArrowLeft, ArrowRight, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, MessageSquare, RotateCcw, Sparkles, XCircle } from 'lucide-react';
+import { FeatureShell, SectionTitle } from '../components/FeatureShell';
 
-// Types
-interface Question {
-  id: string;
-  text: string;
-}
-
-interface Answer {
-  question_id: string;
-  answer: string;
-  question_text: string;
-}
-
-interface EvaluationResult {
-  question_id: string;
-  score: number;
-  feedback: string[];
-}
+interface InterviewQuestion { id: string; text: string }
+interface InterviewAnswer { question_id: string; answer: string; question_text: string }
+interface EvaluationResult { question_id: string; score: number; feedback: string[] }
 
 const InterviewCoach: React.FC = () => {
-  // Setup state
   const [role, setRole] = useState('Software Engineer');
   const [difficulty, setDifficulty] = useState('Beginner');
-  const [type, setInterviewType] = useState('Technical');
-  const [numQuestions, setNumQuestions] = useState(3);
-  const [setupDone, setSetupDone] = useState(false);
-
-  // Interview state
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [evaluating, setEvaluating] = useState(false);
+  const [interviewType, setInterviewType] = useState('Technical');
+  const [questionCount, setQuestionCount] = useState(3);
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([]);
+  const [answers, setAnswers] = useState<InterviewAnswer[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [started, setStarted] = useState(false);
   const [results, setResults] = useState<EvaluationResult[] | null>(null);
-  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const startInterview = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      const resp = await fetch('/api/interview/start', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          role,
-          difficulty,
-          interview_type: type,
-          num_questions: numQuestions,
-        }),
-      });
-      if (!resp.ok) throw new Error('Failed to start interview');
-      const data = await resp.json();
-      setQuestions(data.questions);
-      setSetupDone(true);
-    } catch (e: any) {
-      setError(e.message || 'Unexpected error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAnswerChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const newAns = e.target.value;
-    setAnswers(prev => {
-      const copy = [...prev];
-      const q = questions[currentIdx];
-      const existingIdx = copy.findIndex(a => a.question_id === q.id);
-      const answerObj: Answer = {
-        question_id: q.id,
-        answer: newAns,
-        question_text: q.text,
-      };
-      if (existingIdx >= 0) copy[existingIdx] = answerObj;
-      else copy.push(answerObj);
-      return copy;
+  const currentAnswer = answers.find((answer) => answer.question_id === questions[currentIndex]?.id)?.answer || '';
+  const updateAnswer = (value: string) => {
+    const question = questions[currentIndex];
+    if (!question) return;
+    setAnswers((current) => {
+      const existing = current.findIndex((answer) => answer.question_id === question.id);
+      const nextAnswer = { question_id: question.id, answer: value, question_text: question.text };
+      if (existing < 0) return [...current, nextAnswer];
+      return current.map((answer, index) => index === existing ? nextAnswer : answer);
     });
   };
 
-  const currentAnswer = answers.find(a => a.question_id === questions[currentIdx]?.id)?.answer || '';
-
-  const goPrev = () => setCurrentIdx(i => Math.max(i - 1, 0));
-  const goNext = () => setCurrentIdx(i => Math.min(i + 1, questions.length - 1));
-
-  const finishInterview = async () => {
-    setEvaluating(true);
-    setError('');
+  const startInterview = async () => {
+    setLoading(true); setError(''); setAnswers([]); setResults(null); setCurrentIndex(0);
     try {
-      const resp = await fetch('/api/interview/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answers }),
+      const response = await fetch('/api/interview/start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, difficulty, interview_type: interviewType, num_questions: questionCount }),
       });
-      if (!resp.ok) throw new Error('Evaluation failed');
-      const data = await resp.json();
-      setResults(data.results);
-    } catch (e: any) {
-      setError(e.message || 'Unexpected error');
-    } finally {
-      setEvaluating(false);
-    }
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Could not start an interview with those settings.');
+      setQuestions(data.questions || []);
+      setStarted(true);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'The interview service could not be reached.');
+    } finally { setLoading(false); }
   };
 
-  // ---- UI ----
+  const evaluateInterview = async () => {
+    setLoading(true); setError('');
+    try {
+      const response = await fetch('/api/interview/evaluate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ answers }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.detail || 'Could not evaluate your answers.');
+      setResults(data.results || []);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'The evaluation service could not be reached.');
+    } finally { setLoading(false); }
+  };
+
+  const resetInterview = () => { setStarted(false); setResults(null); setQuestions([]); setAnswers([]); setCurrentIndex(0); setError(''); };
+
   return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-      <h1 className="text-3xl font-bold mb-4 flex items-center"><ArrowRight className="mr-2"/>Interview Coach</h1>
-
-      {error && <p className="text-red-600 mb-4">{error}</p>}
-
-      {/* Setup form */}
-      {!setupDone && (
-        <div className="space-y-4 max-w-md">
-          <label className="block"><span className="font-medium">Job Role</span>
-            <input type="text" value={role} onChange={e => setRole(e.target.value)} className="border rounded w-full p-1"/>
-          </label>
-          <label className="block"><span className="font-medium">Difficulty</span>
-            <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="border rounded w-full p-1">
-              <option>Beginner</option>
-              <option>Intermediate</option>
-              <option>Advanced</option>
-            </select>
-          </label>
-          <label className="block"><span className="font-medium">Interview Type</span>
-            <select value={type} onChange={e => setInterviewType(e.target.value)} className="border rounded w-full p-1">
-              <option>Technical</option>
-              <option>HR</option>
-              <option>Behavioral</option>
-            </select>
-          </label>
-          <label className="block"><span className="font-medium">Number of Questions</span>
-            <input type="number" min={1} max={10} value={numQuestions} onChange={e => setNumQuestions(parseInt(e.target.value) || 1)} className="border rounded w-full p-1"/>
-          </label>
-          <button onClick={startInterview} disabled={loading} className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 flex items-center">
-            {loading ? <Loader2 className="animate-spin mr-2"/> : null}Start Interview
-          </button>
+    <FeatureShell eyebrow="Interview practice" title="Prepare with focused practice" description="Choose a role and interview style, work through questions, then review feedback based on your answers." icon={MessageSquare}>
+      {error && <div className="cf-alert" role="alert">{error}</div>}
+      {!started && !results && <section className="cf-card cf-card-pad">
+        <SectionTitle icon={Sparkles} title="Set up a practice session" />
+        <div className="cf-two-col">
+          <label className="cf-field-label">Target role<input className="cf-input" value={role} onChange={(event) => setRole(event.target.value)} placeholder="e.g. Software Engineer" /></label>
+          <label className="cf-field-label">Difficulty<select className="cf-select" value={difficulty} onChange={(event) => setDifficulty(event.target.value)}>{['Beginner', 'Intermediate', 'Advanced'].map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="cf-field-label">Interview type<select className="cf-select" value={interviewType} onChange={(event) => setInterviewType(event.target.value)}>{['Technical', 'HR', 'Behavioral'].map((item) => <option key={item}>{item}</option>)}</select></label>
+          <label className="cf-field-label">Number of questions<input className="cf-input" type="number" min={1} max={10} value={questionCount} onChange={(event) => setQuestionCount(Math.min(10, Math.max(1, Number(event.target.value) || 1)))} /></label>
         </div>
-      )}
+        <button className="cf-primary-button" style={{ marginTop: 18 }} type="button" disabled={loading || !role.trim()} onClick={startInterview}>{loading ? <Loader2 size={16} className="cf-spin" /> : <ArrowRight size={16} />} Start practice</button>
+      </section>}
 
-      {/* Interview UI */}
-      {setupDone && !results && (
-        <div className="max-w-2xl mx-auto">
-          <div className="flex justify-between items-center mb-2">
-            <button onClick={goPrev} disabled={currentIdx===0} className="px-2"><ArrowLeft/></button>
-            <span>Question {currentIdx+1} of {questions.length}</span>
-            <button onClick={goNext} disabled={currentIdx===questions.length-1} className="px-2"><ArrowRight/></button>
-          </div>
-          <div className="border rounded p-4 mb-2 bg-white dark:bg-gray-800">
-            <p className="font-medium mb-2">{questions[currentIdx]?.text}</p>
-            <textarea value={currentAnswer} onChange={handleAnswerChange} rows={6} className="w-full border rounded p-2" placeholder="Your answer..."/>
-          </div>
-          <div className="flex justify-between mt-4">
-            <button onClick={() => setSetupDone(false)} className="px-4 py-2 bg-gray-300 rounded">Reset</button>
-            <button onClick={finishInterview} disabled={evaluating} className="px-4 py-2 bg-green-600 text-white rounded flex items-center">
-              {evaluating ? <Loader2 className="animate-spin mr-2"/> : null}Finish & Evaluate
-            </button>
+      {started && !results && questions.length > 0 && <section className="cf-card cf-card-pad">
+        <div className="cf-toolbar"><SectionTitle icon={MessageSquare} title="Practice question" aside={<span className="cf-small-label">{difficulty} · {interviewType}</span>} /><span className="cf-count-badge">{currentIndex + 1} / {questions.length}</span></div>
+        <div className="cf-skill-panel"><span className="cf-eyebrow">{role}</span><h2 style={{ margin: '10px 0 0', fontSize: 20 }}>{questions[currentIndex].text}</h2></div>
+        <label className="cf-field-label" htmlFor="practice-answer" style={{ marginTop: 20 }}>Your answer</label>
+        <textarea id="practice-answer" className="cf-textarea" value={currentAnswer} onChange={(event) => updateAnswer(event.target.value)} placeholder="Write your response. Include the context, your actions, and the result where relevant." />
+        <div className="cf-toolbar" style={{ marginTop: 18 }}>
+          <button className="cf-quiet-button" type="button" onClick={resetInterview}><RotateCcw size={14} /> Reset session</button>
+          <div className="cf-toolbar">
+            <button className="cf-secondary-button" type="button" disabled={currentIndex === 0} onClick={() => setCurrentIndex((index) => Math.max(0, index - 1))}><ArrowLeft size={14} /> Previous</button>
+            {currentIndex < questions.length - 1
+              ? <button className="cf-primary-button" type="button" onClick={() => setCurrentIndex((index) => Math.min(questions.length - 1, index + 1))}>Next <ArrowRight size={14} /></button>
+              : <button className="cf-primary-button" type="button" disabled={loading} onClick={evaluateInterview}>{loading ? <Loader2 size={15} className="cf-spin" /> : <CheckCircle2 size={15} />} Finish and review</button>}
           </div>
         </div>
-      )}
+      </section>}
 
-      {/* Results */}
-      {results && (
-        <div className="max-w-2xl mx-auto">
-          <h2 className="text-2xl font-semibold mb-4">Performance Report</h2>
-          {results.map(r => (
-            <div key={r.question_id} className="border rounded p-3 mb-2 bg-white dark:bg-gray-800">
-              <p className="font-medium">Question {r.question_id}</p>
-              <p>Score: {r.score * 100}% {r.score >= 0.6 ? <CheckCircle className="inline text-green-500"/> : <XCircle className="inline text-red-500"/>}</p>
-              <ul className="list-disc list-inside ml-4">
-                {r.feedback.map((msg, i) => (<li key={i}>{msg}</li>))}
-              </ul>
-            </div>
-          ))}
-          <button onClick={() => { setSetupDone(false); setResults(null); setAnswers([]); setCurrentIdx(0); }} className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded">Start New Interview</button>
-        </div>
-      )}
-    </div>
+      {results && <section className="cf-card cf-card-pad">
+        <SectionTitle icon={CheckCircle2} title="Practice feedback" aside={<button className="cf-secondary-button" type="button" onClick={resetInterview}><RotateCcw size={14} /> New session</button>} />
+        {results.length ? <div className="cf-two-col">{results.map((result) => <article className="cf-skill-panel" key={result.question_id}>
+          <div className="cf-toolbar"><strong>Question {result.question_id}</strong><span className="cf-report-badge">{Math.round(result.score * 100)}% score</span></div>
+          {result.feedback.length ? <ul className="cf-insight-list">{result.feedback.map((item, index) => <li key={`${result.question_id}-${index}`}>{item.startsWith('Good:') ? <CheckCircle2 size={14} /> : <XCircle size={14} />}{item.replace(/^(Good|Missing):\s*/, '')}</li>)}</ul> : <p className="cf-muted">No detailed feedback was returned for this answer.</p>}
+        </article>)}</div> : <p className="cf-muted">No answers were submitted for review. Start another practice session when ready.</p>}
+        <p className="cf-compact-note" style={{ marginTop: 16 }}>Feedback is based on a small rule-based question and keyword set; use it as a practice aid, not a hiring evaluation.</p>
+      </section>}
+    </FeatureShell>
   );
 };
 

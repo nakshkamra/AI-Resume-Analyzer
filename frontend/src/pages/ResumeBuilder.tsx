@@ -1,5 +1,6 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { ShieldCheck } from 'lucide-react';
+import { ArrowDown, ArrowUp, Check, Download, FileEdit, GraduationCap, Plus, ShieldCheck, Trash2, User2 } from 'lucide-react';
+import { FeatureShell, SectionTitle } from '../components/FeatureShell';
 
 // ----- Types -----
 interface PersonalInfo {
@@ -349,167 +350,44 @@ const ResumeBuilder: React.FC = () => {
   };
 
   // ----- Render -----
-  return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-      <h1 className="text-3xl font-bold mb-4 flex items-center"><ShieldCheck className="mr-2" />Resume Builder</h1>
-
-      {/* Template selector */}
-      <div className="mb-6">
-        <label className="mr-2 font-medium">Template:</label>
-        <select value={template} onChange={e => setTemplate(e.target.value as any)} className="rounded border p-1">
-          <option value="classic">Classic Professional</option>
-          <option value="modern">Modern Minimal</option>
-          <option value="technical">Technical Developer</option>
-        </select>
-      </div>
-
-      {/* Personal Information */}
-      <section className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold mb-2">Personal Information</h2>
-        <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <input name="name" placeholder="Full Name" value={data.personal.name} onChange={handlePersonalChange} required className="border rounded p-2" />
-          <input type="email" name="email" placeholder="Email" value={data.personal.email} onChange={handlePersonalChange} required className="border rounded p-2" />
-          <input name="phone" placeholder="Phone" value={data.personal.phone} onChange={handlePersonalChange} required className="border rounded p-2" />
-          <input name="address" placeholder="Address" value={data.personal.address} onChange={handlePersonalChange} className="border rounded p-2" />
-          <textarea name="summary" placeholder="Professional Summary" value={data.personal.summary} onChange={handlePersonalChange} rows={3} className="border rounded p-2 md:col-span-2"></textarea>
-        </form>
-      </section>
-
-      {/* Education */}
-      <section className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold mb-2">Education</h2>
-        <form onSubmit={submitEdu} className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-          <input name="institution" placeholder="Institution" value={eduForm.institution || ''} onChange={handleEduChange} className="border rounded p-1" />
-          <input name="degree" placeholder="Degree" value={eduForm.degree || ''} onChange={handleEduChange} className="border rounded p-1" />
-          <input name="startYear" placeholder="Start Year" value={eduForm.startYear || ''} onChange={handleEduChange} className="border rounded p-1" />
-          <input name="endYear" placeholder="End Year" value={eduForm.endYear || ''} onChange={handleEduChange} className="border rounded p-1" />
-          <textarea name="description" placeholder="Description" value={eduForm.description || ''} onChange={handleEduChange} className="border rounded p-1 md:col-span-3" rows={2} />
-          <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-1 md:col-span-3 self-start">Add Education</button>
-        </form>
-        <ul>
-          {data.education.map((e, idx) => (
-            <li key={e.id} className="flex items-center justify-between border rounded p-2 mb-1">
-              <div>
-                <strong>{e.degree}</strong> – {e.institution} ({e.startYear}-{e.endYear})
-                <p className="text-sm">{e.description}</p>
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={() => setData(prev => ({ ...prev, education: moveItem(prev.education, e.id, 'up') }))} disabled={idx===0} className="px-2">↑</button>
-                <button onClick={() => setData(prev => ({ ...prev, education: moveItem(prev.education, e.id, 'down') }))} disabled={idx===data.education.length-1} className="px-2">↓</button>
-                <button onClick={() => setData(prev => ({ ...prev, education: deleteItem(prev.education, e.id) }))} className="text-red-600">✕</button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Experience */}
-      <section className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold mb-2">Work Experience</h2>
-        <form onSubmit={submitExp} className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-          <input name="company" placeholder="Company" value={expForm.company || ''} onChange={handleExpChange} className="border rounded p-1" />
-          <input name="role" placeholder="Role" value={expForm.role || ''} onChange={handleExpChange} className="border rounded p-1" />
-          <input name="startMonth" placeholder="Start (MM/YYYY)" value={expForm.startMonth || ''} onChange={handleExpChange} className="border rounded p-1" />
-          <input name="endMonth" placeholder="End (MM/YYYY) or Present" value={expForm.endMonth || ''} onChange={handleExpChange} className="border rounded p-1" />
-          <textarea name="description" placeholder="Description" value={expForm.description || ''} onChange={handleExpChange} className="border rounded p-1 md:col-span-3" rows={2} />
-          <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-1 md:col-span-3 self-start">Add Experience</button>
-        </form>
-        <ul>
-          {data.experience.map((e, idx) => (
-            <li key={e.id} className="flex items-center justify-between border rounded p-2 mb-1">
-              <div>
-                <strong>{e.role}</strong> @ {e.company} ({e.startMonth} - {e.endMonth})
-                <p className="text-sm">{e.description}</p>
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={() => setData(prev => ({ ...prev, experience: moveItem(prev.experience, e.id, 'up') }))} disabled={idx===0} className="px-2">↑</button>
-                <button onClick={() => setData(prev => ({ ...prev, experience: moveItem(prev.experience, e.id, 'down') }))} disabled={idx===data.experience.length-1} className="px-2">↓</button>
-                <button onClick={() => setData(prev => ({ ...prev, experience: deleteItem(prev.experience, e.id) }))} className="text-red-600">✕</button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Projects */}
-      <section className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold mb-2">Projects</h2>
-        <form onSubmit={submitProj} className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-          <input name="name" placeholder="Project Name" value={projForm.name || ''} onChange={handleProjChange} className="border rounded p-1" />
-          <input name="link" placeholder="Link (optional)" value={projForm.link || ''} onChange={handleProjChange} className="border rounded p-1" />
-          <textarea name="description" placeholder="Description" value={projForm.description || ''} onChange={handleProjChange} className="border rounded p-1 md:col-span-3" rows={2} />
-          <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-1 md:col-span-3 self-start">Add Project</button>
-        </form>
-        <ul>
-          {data.projects.map((p, idx) => (
-            <li key={p.id} className="flex items-center justify-between border rounded p-2 mb-1">
-              <div>
-                <strong>{p.name}</strong> {p.link && (<a href={p.link} className="text-blue-600 dark:text-blue-400" target="_blank" rel="noreferrer">(link)</a>)}
-                <p className="text-sm">{p.description}</p>
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={() => setData(prev => ({ ...prev, projects: moveItem(prev.projects, p.id, 'up') }))} disabled={idx===0} className="px-2">↑</button>
-                <button onClick={() => setData(prev => ({ ...prev, projects: moveItem(prev.projects, p.id, 'down') }))} disabled={idx===data.projects.length-1} className="px-2">↓</button>
-                <button onClick={() => setData(prev => ({ ...prev, projects: deleteItem(prev.projects, p.id) }))} className="text-red-600">✕</button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Certifications */}
-      <section className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold mb-2">Certifications</h2>
-        <form onSubmit={submitCert} className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
-          <input name="name" placeholder="Certification Name" value={certForm.name || ''} onChange={handleCertChange} className="border rounded p-1" />
-          <input name="issuer" placeholder="Issuer" value={certForm.issuer || ''} onChange={handleCertChange} className="border rounded p-1" />
-          <input name="date" placeholder="Date (MM/YYYY)" value={certForm.date || ''} onChange={handleCertChange} className="border rounded p-1" />
-          <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-1 md:col-span-3 self-start">Add Certification</button>
-        </form>
-        <ul>
-          {data.certifications.map((c, idx) => (
-            <li key={c.id} className="flex items-center justify-between border rounded p-2 mb-1">
-              <div>
-                <strong>{c.name}</strong> – {c.issuer} ({c.date})
-              </div>
-              <div className="flex space-x-2">
-                <button onClick={() => setData(prev => ({ ...prev, certifications: moveItem(prev.certifications, c.id, 'up') }))} disabled={idx===0} className="px-2">↑</button>
-                <button onClick={() => setData(prev => ({ ...prev, certifications: moveItem(prev.certifications, c.id, 'down') }))} disabled={idx===data.certifications.length-1} className="px-2">↓</button>
-                <button onClick={() => setData(prev => ({ ...prev, certifications: deleteItem(prev.certifications, c.id) }))} className="text-red-600">✕</button>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Skills */}
-      <section className="mb-6 border-b pb-4">
-        <h2 className="text-2xl font-semibold mb-2">Technical Skills</h2>
-        <form onSubmit={submitSkill} className="flex items-center space-x-2 mb-2">
-          <input value={skillForm} onChange={e => setSkillForm(e.target.value)} placeholder="Skill name" className="border rounded p-1 flex-1" />
-          <button type="submit" className="bg-indigo-600 text-white rounded px-3 py-1">Add Skill</button>
-        </form>
-        <ul className="flex flex-wrap gap-2">
-          {data.skills.map((s, idx) => (
-            <li key={s.id} className="bg-indigo-200 dark:bg-indigo-800 px-2 py-1 rounded flex items-center">
-              {s.name}
-              <button onClick={() => setData(prev => ({ ...prev, skills: deleteItem(prev.skills, s.id) }))} className="ml-1 text-red-600">✕</button>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* Preview */}
-      <section className="mb-6">
-        <h2 className="text-2xl font-semibold mb-2">Live Preview</h2>
-        <div id="resume-preview" className="border rounded p-4 max-w-3xl mx-auto bg-white dark:bg-gray-800">
-          {template === 'classic' && <ClassicTemplate data={data} />}
-          {template === 'modern' && <ModernTemplate data={data} />}
-          {template === 'technical' && <TechnicalTemplate data={data} />}
-        </div>
-        <button onClick={handlePrint} className="mt-4 bg-green-600 text-white rounded px-4 py-2">Print / Save as PDF</button>
-      </section>
+  const entryActions = (list: 'education' | 'experience' | 'projects' | 'certifications', id: string, index: number, count: number) => (
+    <div className="cf-entry-actions">
+      <button type="button" className="cf-icon-button" aria-label="Move item up" disabled={index === 0} onClick={() => setData(prev => ({ ...prev, [list]: moveItem(prev[list] as any, id, 'up') as any }))}><ArrowUp size={15} /></button>
+      <button type="button" className="cf-icon-button" aria-label="Move item down" disabled={index === count - 1} onClick={() => setData(prev => ({ ...prev, [list]: moveItem(prev[list] as any, id, 'down') as any }))}><ArrowDown size={15} /></button>
+      <button type="button" className="cf-icon-button danger" aria-label="Remove item" onClick={() => setData(prev => ({ ...prev, [list]: deleteItem(prev[list] as any, id) as any }))}><Trash2 size={15} /></button>
     </div>
+  );
+
+  return (
+    <FeatureShell eyebrow="Document studio" title="Build your resume" description="Shape your experience into a clear, professional document. Your edits are saved in this browser as you work." icon={FileEdit}>
+      <div className="cf-builder-toolbar cf-card cf-card-pad">
+        <div><span className="cf-save-indicator"><Check size={13} /> Saved in this browser</span><p>Choose a style, add your details, and review the live document.</p></div>
+        <label className="cf-template-select"><span>Template</span><select value={template} onChange={e => setTemplate(e.target.value as 'classic' | 'modern' | 'technical')} className="cf-select"><option value="classic">Classic professional</option><option value="modern">Modern minimal</option><option value="technical">Technical developer</option></select></label>
+      </div>
+      <div className="cf-resume-editor-grid">
+        <div className="cf-editor-column">
+          <section className="cf-card cf-builder-section"><SectionTitle icon={User2} title="Personal information" aside={<span className="cf-small-label">Required details</span>} /><div className="cf-field-grid">
+            <input aria-label="Full name" name="name" placeholder="Full name" value={data.personal.name} onChange={handlePersonalChange} required className="cf-input" />
+            <input aria-label="Email" type="email" name="email" placeholder="Email address" value={data.personal.email} onChange={handlePersonalChange} required className="cf-input" />
+            <input aria-label="Phone" name="phone" placeholder="Phone number" value={data.personal.phone} onChange={handlePersonalChange} required className="cf-input" />
+            <input aria-label="Location" name="address" placeholder="City, country" value={data.personal.address} onChange={handlePersonalChange} className="cf-input" />
+            <textarea aria-label="Professional summary" name="summary" placeholder="Professional summary" value={data.personal.summary} onChange={handlePersonalChange} rows={3} className="cf-textarea cf-span-two" />
+          </div></section>
+
+          <section className="cf-card cf-builder-section"><SectionTitle icon={ShieldCheck} title="Experience" aside={<span className="cf-small-label">{data.experience.length} entries</span>} /><form onSubmit={submitExp} className="cf-entry-form"><div className="cf-field-grid"><input aria-label="Company" name="company" placeholder="Company" value={expForm.company || ''} onChange={handleExpChange} className="cf-input" /><input aria-label="Role" name="role" placeholder="Role or title" value={expForm.role || ''} onChange={handleExpChange} className="cf-input" /><input aria-label="Experience start" name="startMonth" placeholder="Start (MM/YYYY)" value={expForm.startMonth || ''} onChange={handleExpChange} className="cf-input" /><input aria-label="Experience end" name="endMonth" placeholder="End or present" value={expForm.endMonth || ''} onChange={handleExpChange} className="cf-input" /><textarea aria-label="Experience description" name="description" placeholder="Impact, responsibilities, and results" value={expForm.description || ''} onChange={handleExpChange} rows={2} className="cf-textarea cf-span-two" /></div><button type="submit" className="cf-quiet-button"><Plus size={15} /> Add experience</button></form>{data.experience.map((item, index) => <div className="cf-entry-row" key={item.id}><div><strong>{item.role}</strong><p>{item.company} · {item.startMonth} – {item.endMonth}</p><p>{item.description}</p></div>{entryActions('experience', item.id, index, data.experience.length)}</div>)}</section>
+
+          <section className="cf-card cf-builder-section"><SectionTitle icon={GraduationCap} title="Education" aside={<span className="cf-small-label">{data.education.length} entries</span>} /><form onSubmit={submitEdu} className="cf-entry-form"><div className="cf-field-grid"><input aria-label="Institution" name="institution" placeholder="Institution" value={eduForm.institution || ''} onChange={handleEduChange} className="cf-input" /><input aria-label="Degree" name="degree" placeholder="Degree or qualification" value={eduForm.degree || ''} onChange={handleEduChange} className="cf-input" /><input aria-label="Education start year" name="startYear" placeholder="Start year" value={eduForm.startYear || ''} onChange={handleEduChange} className="cf-input" /><input aria-label="Education end year" name="endYear" placeholder="End year" value={eduForm.endYear || ''} onChange={handleEduChange} className="cf-input" /><textarea aria-label="Education detail" name="description" placeholder="Relevant coursework or honors" value={eduForm.description || ''} onChange={handleEduChange} rows={2} className="cf-textarea cf-span-two" /></div><button type="submit" className="cf-quiet-button"><Plus size={15} /> Add education</button></form>{data.education.map((item, index) => <div className="cf-entry-row" key={item.id}><div><strong>{item.degree}</strong><p>{item.institution} · {item.startYear} – {item.endYear}</p><p>{item.description}</p></div>{entryActions('education', item.id, index, data.education.length)}</div>)}</section>
+
+          <section className="cf-card cf-builder-section"><SectionTitle icon={FileEdit} title="Projects" aside={<span className="cf-small-label">{data.projects.length} entries</span>} /><form onSubmit={submitProj} className="cf-entry-form"><div className="cf-field-grid"><input aria-label="Project name" name="name" placeholder="Project name" value={projForm.name || ''} onChange={handleProjChange} className="cf-input" /><input aria-label="Project link" name="link" placeholder="Project link (optional)" value={projForm.link || ''} onChange={handleProjChange} className="cf-input" /><textarea aria-label="Project description" name="description" placeholder="What did you build or accomplish?" value={projForm.description || ''} onChange={handleProjChange} rows={2} className="cf-textarea cf-span-two" /></div><button type="submit" className="cf-quiet-button"><Plus size={15} /> Add project</button></form>{data.projects.map((item, index) => <div className="cf-entry-row" key={item.id}><div><strong>{item.name}</strong>{item.link && <a className="cf-project-link" href={item.link} target="_blank" rel="noreferrer">Open link</a>}<p>{item.description}</p></div>{entryActions('projects', item.id, index, data.projects.length)}</div>)}</section>
+
+          <section className="cf-card cf-builder-section"><SectionTitle icon={ShieldCheck} title="Certifications" aside={<span className="cf-small-label">{data.certifications.length} entries</span>} /><form onSubmit={submitCert} className="cf-entry-form"><div className="cf-field-grid"><input aria-label="Certification name" name="name" placeholder="Certification name" value={certForm.name || ''} onChange={handleCertChange} className="cf-input" /><input aria-label="Certification issuer" name="issuer" placeholder="Issuing organization" value={certForm.issuer || ''} onChange={handleCertChange} className="cf-input" /><input aria-label="Certification date" name="date" placeholder="Date (MM/YYYY)" value={certForm.date || ''} onChange={handleCertChange} className="cf-input" /></div><button type="submit" className="cf-quiet-button"><Plus size={15} /> Add certification</button></form>{data.certifications.map((item, index) => <div className="cf-entry-row" key={item.id}><div><strong>{item.name}</strong><p>{item.issuer} · {item.date}</p></div>{entryActions('certifications', item.id, index, data.certifications.length)}</div>)}</section>
+
+          <section className="cf-card cf-builder-section"><SectionTitle icon={ShieldCheck} title="Skills" aside={<span className="cf-small-label">{data.skills.length} skills</span>} /><form onSubmit={submitSkill} className="cf-skill-form"><input aria-label="Add a skill" value={skillForm} onChange={e => setSkillForm(e.target.value)} placeholder="Add a skill" className="cf-input" /><button type="submit" className="cf-primary-button"><Plus size={15} /> Add</button></form><div className="cf-pill-list cf-skill-list">{data.skills.map((item) => <span className="cf-pill" key={item.id}>{item.name}<button type="button" aria-label={`Remove ${item.name}`} onClick={() => setData(prev => ({ ...prev, skills: deleteItem(prev.skills, item.id) }))}><Trash2 size={12} /></button></span>)}</div></section>
+        </div>
+
+        <aside className="cf-resume-preview"><section className="cf-card cf-card-pad"><div className="cf-preview-toolbar"><div><SectionTitle icon={FileEdit} title="Live preview" /><p>Updates as you edit</p></div><button type="button" className="cf-primary-button" onClick={handlePrint}><Download size={15} /> Export PDF</button></div><div id="resume-preview" className="cf-resume-paper">{template === 'classic' && <ClassicTemplate data={data} />}{template === 'modern' && <ModernTemplate data={data} />}{template === 'technical' && <TechnicalTemplate data={data} />}</div><p className="cf-footer-note">Use your browser’s print dialog and choose “Save as PDF.”</p></section></aside>
+      </div>
+    </FeatureShell>
   );
 };
 

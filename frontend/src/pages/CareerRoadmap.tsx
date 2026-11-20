@@ -1,222 +1,111 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ArrowUpRight, Check, CheckCircle2, Circle, Map, RefreshCw, Target, XCircle } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { FeatureShell, SectionTitle } from '../components/FeatureShell';
+import { lessons } from '../data/lessons';
 import { roleSkills, RoleSkills } from '../data/roleSkills';
-import { lessons, Lesson } from '../data/lessons';
-import { CheckCircle, XCircle, ArrowRight, RefreshCw, Check } from 'lucide-react';
 
-// Milestones per stage – simple static data – can be extended later
 const stageMilestones: Record<string, string[]> = {
-  Beginner: [
-    'Understand basic syntax and tooling',
-    'Write simple programs',
-    'Version control with Git basics',
-  ],
-  Intermediate: [
-    'Build modular code and libraries',
-    'Write tests and use CI',
-    'Advanced Git workflows',
-  ],
-  Advanced: [
-    'Design scalable architectures',
-    'Performance tuning & profiling',
-    'Mentor junior developers',
-  ],
+  Beginner: ['Understand basic syntax and tooling', 'Write simple programs', 'Version control with Git basics'],
+  Intermediate: ['Build modular code and libraries', 'Write tests and use CI', 'Advanced Git workflows'],
+  Advanced: ['Design scalable architectures', 'Performance tuning and profiling', 'Mentor junior engineers'],
 };
 
 const CareerRoadmap: React.FC = () => {
-  const [selectedRole, setSelectedRole] = useState<string>('');
-  const [targetRole, setTargetRole] = useState<RoleSkills | null>(null);
+  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedStage, setSelectedStage] = useState('Beginner');
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [selectedStage, setSelectedStage] = useState<string>('Beginner');
   const [completedMilestones, setCompletedMilestones] = useState<string[]>([]);
+  const targetRole: RoleSkills | undefined = useMemo(() => roleSkills.find((role) => role.role === selectedRole), [selectedRole]);
 
-  // Load completed lessons (shared with VideoAcademy)
   useEffect(() => {
-    const saved = localStorage.getItem('completedLessons');
-    if (saved) {
-      try {
-        setCompletedLessons(JSON.parse(saved));
-      } catch {}
+    try {
+      const lessonsSaved = localStorage.getItem('completedLessons');
+      if (lessonsSaved) setCompletedLessons(JSON.parse(lessonsSaved));
+      const roadmapSaved = localStorage.getItem('careerRoadmapState');
+      if (roadmapSaved) {
+        const state = JSON.parse(roadmapSaved);
+        setSelectedRole(state.role || '');
+        setSelectedStage(state.stage || 'Beginner');
+        setCompletedMilestones(state.milestones || []);
+      }
+    } catch {
+      // Ignore invalid browser storage and let the user start a fresh roadmap.
     }
   }, []);
 
-  // Load persisted roadmap state (role, stage, milestones)
   useEffect(() => {
-    const saved = localStorage.getItem('careerRoadmapState');
-    if (saved) {
-      try {
-        const obj = JSON.parse(saved);
-        setSelectedRole(obj.role || '');
-        setSelectedStage(obj.stage || 'Beginner');
-        setCompletedMilestones(obj.milestones || []);
-      } catch {}
-    }
-  }, []);
-
-  // Persist roadmap state whenever it changes
-  useEffect(() => {
-    const state = {
-      role: selectedRole,
-      stage: selectedStage,
-      milestones: completedMilestones,
-    };
-    localStorage.setItem('careerRoadmapState', JSON.stringify(state));
+    localStorage.setItem('careerRoadmapState', JSON.stringify({ role: selectedRole, stage: selectedStage, milestones: completedMilestones }));
   }, [selectedRole, selectedStage, completedMilestones]);
 
-  // When role selected, compute targetRole
-  useEffect(() => {
-    if (selectedRole) {
-      const rs = roleSkills.find(r => r.role === selectedRole) || null;
-      setTargetRole(rs);
-    } else {
-      setTargetRole(null);
-    }
-  }, [selectedRole]);
-
-  // Compute progress based on lessons covering role skills + milestones completed
-  const totalSkills = targetRole ? targetRole.skills.length : 0;
-  const coveredSkills = new Set<string>();
-  completedLessons.forEach(lid => {
-    const lesson = lessons.find(l => l.id === lid);
-    if (lesson && targetRole?.skills.includes(lesson.skill)) {
-      coveredSkills.add(lesson.skill);
-    }
-  });
-  const skillProgress = totalSkills === 0 ? 0 : Math.round((coveredSkills.size / totalSkills) * 100);
-
-  const totalMilestones = stageMilestones[selectedStage]?.length || 0;
-  const milestoneProgress = totalMilestones === 0 ? 0 : Math.round((completedMilestones.length / totalMilestones) * 100);
-
+  const totalSkills = targetRole?.skills.length || 0;
+  const coveredSkills = targetRole?.skills.filter((skill) => completedLessons.some((lessonId) => {
+    const lesson = lessons.find((item) => item.id === lessonId);
+    return lesson?.skill.toLowerCase() === skill.toLowerCase();
+  })).length || 0;
+  const skillProgress = totalSkills ? Math.round((coveredSkills / totalSkills) * 100) : 0;
+  const milestones = stageMilestones[selectedStage] || [];
+  const doneMilestones = milestones.filter((milestone) => completedMilestones.includes(milestone)).length;
+  const milestoneProgress = milestones.length ? Math.round((doneMilestones / milestones.length) * 100) : 0;
   const overallProgress = Math.round((skillProgress + milestoneProgress) / 2);
 
-  const toggleMilestone = (m: string) => {
-    setCompletedMilestones(prev =>
-      prev.includes(m) ? prev.filter(x => x !== m) : [...prev, m]
-    );
-  };
+  const toggleMilestone = (milestone: string) => setCompletedMilestones((current) => current.includes(milestone)
+    ? current.filter((item) => item !== milestone)
+    : [...current, milestone]);
 
-  const handleReset = () => {
-    if (window.confirm('Reset the entire roadmap? This will clear selections and progress.')) {
-      setSelectedRole('');
-      setTargetRole(null);
-      setSelectedStage('Beginner');
-      setCompletedMilestones([]);
-      localStorage.removeItem('careerRoadmapState');
-    }
+  const resetRoadmap = () => {
+    setSelectedRole('');
+    setSelectedStage('Beginner');
+    setCompletedMilestones([]);
+    localStorage.removeItem('careerRoadmapState');
   };
 
   return (
-    <div className="p-6 min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
-      <h1 className="text-3xl font-bold mb-4 flex items-center">
-        <ArrowRight className="mr-2" />Career Roadmap
-      </h1>
-
-      {/* Role selection */}
-      {!targetRole && (
-        <div className="max-w-md">
-          <label className="block mb-2">
-            <span className="font-medium">Select your target role</span>
-          </label>
-          <select
-            value={selectedRole}
-            onChange={e => setSelectedRole(e.target.value)}
-            className="border rounded w-full p-2"
-          >
-            <option value="">-- Choose role --</option>
-            {roleSkills.map(r => (
-              <option key={r.role} value={r.role}>
-                {r.role}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Roadmap UI */}
-      {targetRole && (
-        <div className="mt-6">
-          <h2 className="text-2xl font-semibold mb-2">Role: {targetRole.role}</h2>
-          <p className="mb-2"><strong>Primary language:</strong> {targetRole.language}</p>
-          <p className="mb-2"><strong>Core skills:</strong> {targetRole.skills.join(', ')}</p>
-
-          {/* Stage selector */}
-          <div className="my-4">
-            <label className="mr-2 font-medium">Learning stage:</label>
-            {['Beginner', 'Intermediate', 'Advanced'].map(st => (
-              <button
-                key={st}
-                onClick={() => setSelectedStage(st)}
-                className={`px-3 py-1 mr-2 rounded ${selectedStage === st ? 'bg-indigo-600 text-white' : 'bg-gray-200 dark:bg-gray-700'}`}
-              >
-                {st}
-              </button>
-            ))}
+    <FeatureShell eyebrow="Career planning" title="Build a path toward your next role" description="Choose a target role, follow milestones, and track learning progress from your academy lessons." icon={Map}>
+      <section className="cf-card cf-card-pad">
+        <SectionTitle icon={Target} title="Your target role" aside={targetRole && <button type="button" className="cf-quiet-button" onClick={resetRoadmap}><RefreshCw size={14} /> Reset plan</button>} />
+        <label className="cf-field-label" htmlFor="target-role">Select a role to personalize your roadmap</label>
+        <select id="target-role" className="cf-select" value={selectedRole} onChange={(event) => setSelectedRole(event.target.value)}>
+          <option value="">Choose a target role</option>
+          {roleSkills.map((role) => <option key={role.role} value={role.role}>{role.role}</option>)}
+        </select>
+        {targetRole ? <>
+          <div className="cf-roadmap-intro" style={{ marginTop: 18 }}>
+            <div className="cf-roadmap-mark"><Target size={22} /></div>
+            <div className="cf-roadmap-message"><span className="cf-small-label">TARGET ROLE · {targetRole.language}</span><h2>{targetRole.role}</h2><p>{targetRole.skills.join(' · ')}</p></div>
+            <div className="cf-score-ring" style={{ '--score': `${overallProgress}%` } as React.CSSProperties}><div className="cf-score-ring-inner"><strong>{overallProgress}<small>%</small></strong><span>Progress</span></div></div>
           </div>
-
-          {/* Skill Gap Tracker */}
-          <div className="my-4">
-            <h3 className="text-xl font-semibold mb-2">Skill Gap Tracker</h3>
-            <ul className="list-disc list-inside">
-              {targetRole.skills.map(skill => {
-                const covered = completedLessons.some(lid => {
-                  const l = lessons.find(ls => ls.id === lid);
-                  return l && l.skill === skill;
-                });
-                return (
-                  <li key={skill} className="flex items-center">
-                    {covered ? <CheckCircle className="text-green-500 mr-2" /> : <XCircle className="text-red-500 mr-2" />}
-                    {skill}
-                    <a href="/video-academy" className="ml-2 text-indigo-600 hover:underline">Learn</a>
-                  </li>
-                );
-              })}
-            </ul>
+          <div className="cf-two-col cf-roadmap-preview-section">
+            <section className="cf-skill-panel">
+              <SectionTitle icon={CheckCircle2} title="Skill learning" aside={<span className="cf-count-badge">{coveredSkills}/{totalSkills}</span>} />
+              <div className="cf-progress-track"><span style={{ width: `${skillProgress}%` }} /></div>
+              <p className="cf-muted" style={{ marginTop: 12 }}>Complete matching lessons in the Academy to track skills here.</p>
+              <div className="cf-pill-list" style={{ marginTop: 12 }}>{targetRole.skills.map((skill) => {
+                const covered = lessons.some((lesson) => completedLessons.includes(lesson.id) && lesson.skill.toLowerCase() === skill.toLowerCase());
+                return <span className={`cf-pill ${covered ? 'cf-pill-positive' : 'cf-pill-missing'}`} key={skill}>{covered ? <Check size={12} /> : <XCircle size={12} />}{skill}</span>;
+              })}</div>
+              <Link className="cf-secondary-button" style={{ marginTop: 16 }} to="/video-academy">Browse lessons <ArrowUpRight size={14} /></Link>
+            </section>
+            <section className="cf-skill-panel">
+              <SectionTitle icon={Map} title="Learning milestones" aside={<span className="cf-count-badge">{doneMilestones}/{milestones.length}</span>} />
+              <label className="cf-field-label" htmlFor="learning-stage">Experience stage</label>
+              <select id="learning-stage" className="cf-select" value={selectedStage} onChange={(event) => setSelectedStage(event.target.value)}>
+                {Object.keys(stageMilestones).map((stage) => <option key={stage}>{stage}</option>)}
+              </select>
+              <div className="cf-progress-track" style={{ marginTop: 14 }}><span style={{ width: `${milestoneProgress}%` }} /></div>
+              <div className="cf-roadmap-track" style={{ marginTop: 18 }}>{milestones.map((milestone, index) => {
+                const done = completedMilestones.includes(milestone);
+                return <div className="cf-roadmap-step" key={milestone}>
+                  <button type="button" className={`cf-roadmap-node ${done ? '' : 'muted'}`} onClick={() => toggleMilestone(milestone)} aria-label={done ? 'Mark milestone incomplete' : 'Mark milestone complete'}>{done ? <Check size={15} /> : <Circle size={13} />}</button>
+                  <div><small>MILESTONE {String(index + 1).padStart(2, '0')}</small><strong className={done ? 'line-through' : ''}>{milestone}</strong></div>
+                  <span className="cf-step-status">{done ? 'Complete' : 'To do'}</span>
+                </div>;
+              })}</div>
+            </section>
           </div>
-
-          {/* Milestones */}
-          <div className="my-4">
-            <h3 className="text-xl font-semibold mb-2">{selectedStage} Milestones</h3>
-            <ul className="list-disc list-inside">
-              {stageMilestones[selectedStage]?.map(m => (
-                <li key={m} className="flex items-center">
-                  <button
-                    onClick={() => toggleMilestone(m)}
-                    className="mr-2"
-                    aria-label={completedMilestones.includes(m) ? 'Mark incomplete' : 'Mark complete'}
-                  >
-                    {completedMilestones.includes(m) ? (
-                      <Check className="text-green-500" />
-                    ) : (
-                      <RefreshCw className="text-gray-500" />
-                    )}
-                  </button>
-                  <span className={completedMilestones.includes(m) ? 'line-through text-gray-500' : ''}>{m}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Progress bars */}
-          <div className="my-4">
-            <p className="font-medium mb-1">Skill progress: {skillProgress}%</p>
-            <div className="w-full bg-gray-300 dark:bg-gray-700 rounded h-4 mb-2">
-              <div className="bg-indigo-600 h-4 rounded" style={{ width: `${skillProgress}%` }} />
-            </div>
-            <p className="font-medium mb-1">Milestone progress: {milestoneProgress}%</p>
-            <div className="w-full bg-gray-300 dark:bg-gray-700 rounded h-4 mb-2">
-              <div className="bg-indigo-600 h-4 rounded" style={{ width: `${milestoneProgress}%` }} />
-            </div>
-            <p className="font-medium mb-1">Overall progress: {overallProgress}%</p>
-            <div className="w-full bg-gray-300 dark:bg-gray-700 rounded h-4">
-              <div className="bg-indigo-600 h-4 rounded" style={{ width: `${overallProgress}%` }} />
-            </div>
-          </div>
-
-          <button onClick={handleReset} className="mt-4 px-4 py-2 bg-gray-300 dark:bg-gray-600 rounded">
-            Reset Roadmap
-          </button>
-        </div>
-      )}
-    </div>
+        </> : <p className="cf-muted" style={{ marginTop: 14 }}>Select a role to see its skills and learning milestones.</p>}
+      </section>
+    </FeatureShell>
   );
 };
 

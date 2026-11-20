@@ -9,6 +9,7 @@ import InterviewCoach from './pages/InterviewCoach';
 import ResumeBuilder from './pages/ResumeBuilder';
 import CareerRoadmap from './pages/CareerRoadmap';
 import Settings from './pages/Settings';
+import AnalysisHistory from './pages/AnalysisHistory';
 
 const App: React.FC = () => {
   return (
@@ -22,6 +23,7 @@ const App: React.FC = () => {
       <Route path="/resume-builder" element={<ResumeBuilder />} />
       <Route path="/career-roadmap" element={<CareerRoadmap />} />
       <Route path="/settings" element={<Settings />} />
+      <Route path="/analysis-history" element={<AnalysisHistory />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

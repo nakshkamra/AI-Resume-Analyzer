@@ -10,6 +10,7 @@ import {
   FileEdit,
   MapPin,
   Settings,
+  History,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -20,7 +21,7 @@ const Dashboard: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
-    fetch('/health')
+    fetch('/api/health')
       .then((r) => r.json())
       .then((data) => setBackendOk(data.status === 'ok'))
       .catch(() => setBackendOk(false));
@@ -34,8 +35,8 @@ const Dashboard: React.FC = () => {
     { to: '/resume-builder', label: 'Resume Builder', icon: FileEdit },
     { to: '/career-roadmap', label: 'Career Roadmap', icon: MapPin },
     { to: '/settings', label: 'Settings', icon: Settings },
+    { to: '/analysis-history', label: 'Analysis History', icon: History },
   ];
-
   const descriptions: Record<string, string> = {
     '/resume-analyzer': 'Upload and analyze your resume to get AI-driven feedback and suggestions.',
     '/job-matcher': 'Match your profile with relevant job listings using AI.',
@@ -44,6 +45,7 @@ const Dashboard: React.FC = () => {
     '/resume-builder': 'Create a professional resume with AI assistance.',
     '/career-roadmap': 'Generate a personalized career roadmap and track progress.',
     '/settings': 'Customize your app experience, including theme and preferences.',
+    '/analysis-history': 'Review your saved resume analyses and job matches.',
   };
 
   return (
