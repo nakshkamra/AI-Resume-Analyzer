@@ -1,33 +1,32 @@
-FROM python:3.11-slim-bookworm
+FROM node:22-bookworm-slim AS frontend-build
+WORKDIR /build/frontend
+COPY frontend/package*.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM python:3.11-slim-bookworm AS runtime
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    CAREERFIT_DATABASE_PATH=/data/resume_analyzer.db \
-    HF_HOME=/models \
-    HF_HUB_CACHE=/models/hub
+    CAREERFIT_DATABASE_PATH=/data/resume_analyzer.db
 
 WORKDIR /app
-
-COPY requirements.txt ./requirements.txt
+COPY backend/requirements.txt ./backend/requirements.txt
 RUN python -m pip install --no-cache-dir --upgrade pip \
-    && python -m pip install --no-cache-dir \
-        --index-url https://download.pytorch.org/whl/cpu \
-        --extra-index-url https://pypi.org/simple \
-        "torch==2.13.0+cpu" \
-    && python -m pip install --no-cache-dir -r requirements.txt
+    && python -m pip install --no-cache-dir -r backend/requirements.txt
 
-COPY app.py ./app.py
+COPY backend/ ./backend/
 COPY src/ ./src/
-COPY .streamlit/ ./.streamlit/
+COPY --from=frontend-build /build/frontend/dist ./frontend/dist
 
 RUN groupadd --system careerfit \
     && useradd --system --gid careerfit --create-home --home-dir /home/careerfit careerfit \
-    && mkdir -p /data /models \
-    && chown -R careerfit:careerfit /app /data /models /home/careerfit
+    && mkdir -p /data \
+    && chown -R careerfit:careerfit /app /data /home/careerfit
 
 USER careerfit
 
 EXPOSE 8501
-
-CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0", "--server.port=8501", "--server.headless=true"]
+CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8501"]

@@ -10,6 +10,7 @@ import {
   FileEdit,
   MapPin,
   Settings,
+  History,
   Sun,
   Moon,
 } from 'lucide-react';
@@ -34,6 +35,7 @@ const Dashboard: React.FC = () => {
     { to: '/resume-builder', label: 'Resume Builder', icon: FileEdit },
     { to: '/career-roadmap', label: 'Career Roadmap', icon: MapPin },
     { to: '/settings', label: 'Settings', icon: Settings },
+    { to: '/analysis-history', label: 'Analysis History', icon: History },
   ];
 
   return (
@@ -101,7 +103,7 @@ const Dashboard: React.FC = () => {
                 <item.icon className="w-6 h-6 text-primary mr-2" />
                 <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">{item.label}</h2>
               </div>
-              <p className="text-gray-600 dark:text-gray-400">Feature coming soon – stay tuned.</p>
+              <p className="text-gray-600 dark:text-gray-400">{item.to === '/analysis-history' ? 'Review your saved resume analyses and job matches.' : 'Open this career tool.'}</p>
             </Link>
           ))}
         </section>

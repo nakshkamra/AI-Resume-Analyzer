@@ -1,99 +1,53 @@
-# 📄 AI Resume Analyzer
+# CareerFit Pro
 
-An AI-powered Streamlit web application that analyzes resumes, matches skills against job descriptions, and compares your resume across multiple roles.
+CareerFit Pro is a React/Vite career app backed by a FastAPI service. The React frontend provides resume analysis, job matching, a resume builder, and analysis history. The Python service handles PDF/DOCX parsing, skill matching, quality scoring, and SQLite history.
 
-## 🚀 Features
-* **Resume Parsing:** Extracts text and skills from PDF and DOCX files.
-* **Smart Skill Matching:** Compares your extracted skills with required job skills.
-* **Multiple Job Comparison:** Compare your resume against up to 3 different job descriptions at once to find the best fit.
-* **AI Recommendations:** Provides actionable suggestions for missing skills.
-* **Analysis History:** Automatically saves your past resume reviews in a local SQLite database.
+## Run locally for development
 
-## 🛠️ Tech Stack
-* Python
-* Streamlit (Frontend Interface)
-* SQLite (Database)
-* Pandas & Matplotlib (Data Visualization)
-* Natural Language Processing (NLP)
+Run these from the repository root in separate terminals.
 
-## 🏃‍♂️ How to Run Locally
-1. Clone the repository
-2. Install dependencies: `pip install -r requirements.txt`
-3. Run the app: `streamlit run app.py`
+### 1. Start the API
 
-## CI and Continuous Deployment
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+python -m uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
+```
 
-### Continuous integration
+### 2. Start the React app
 
-GitHub Actions runs `.github/workflows/ci.yml` on pull requests targeting `main`, pushes to `main`, and manual dispatch. It installs the project dependencies, checks Python syntax, and runs the pytest suite. The current required check is the `build` job.
+```bash
+cd frontend
+npm ci
+npm run dev
+```
 
-### Deployment to Streamlit Community Cloud
+Open [http://localhost:3000](http://localhost:3000). Vite forwards `/api` requests to the FastAPI service on port 8000. The API health endpoint is [http://localhost:8000/health](http://localhost:8000/health).
 
-The live app is hosted on Streamlit Community Cloud. Community Cloud deploys from a connected GitHub repository and automatically updates the app after commits are pushed to its configured branch. For this project, the intended deployment coordinates are `nakshkamra/AI-Resume-Analyzer`, branch `main`, entrypoint `app.py`. Confirm those coordinates in the app settings at [share.streamlit.io](https://share.streamlit.io/) because deployment settings are stored by Streamlit, not in this repository.
+## Run the production app with Docker
 
-The release flow is: open a pull request to `main`, wait for the `build` check to pass, then merge it. The merge updates `main`; Streamlit Community Cloud then detects the commit and redeploys the app. GitHub Actions does not directly deploy to Streamlit Community Cloud, and Community Cloud's automatic update is not gated by the Actions result on its own. To enforce the check before release, configure GitHub branch protection for `main` and require the `build` status check before merging.
-
-For deployment failures, inspect the app's build and runtime logs in the Streamlit Community Cloud workspace.
-
-## Run with Docker
-
-### Prerequisites
-
-- Docker Desktop, or Docker Engine with the Compose plugin.
-- Outbound internet access the first time semantic resume matching runs. The app downloads the public `all-MiniLM-L6-v2` model from Hugging Face and keeps it in a Docker volume for later runs.
-- No API keys or third-party credentials are used by the current application.
-
-### Start CareerFit
-
-From the repository root, run:
+From the repository root:
 
 ```bash
 docker compose up --build
 ```
 
-Open [http://localhost:8501](http://localhost:8501). Compose binds the app to the local machine only. To run it in the background, add `-d` to the command.
+Open [http://localhost:8501](http://localhost:8501). The container builds the React assets and serves them with FastAPI. The SQLite database is stored in the persistent `careerfit_data` volume. Stop the app with `docker compose down`; `docker compose down --volumes` also deletes saved history.
 
-Optional environment overrides can go in `.env`. Start with the example if needed:
+## Legacy Streamlit entry point
 
-```bash
-cp .env.example .env
-```
+`app.py` is retained as the previous Streamlit interface and is not the current React app. Running `python3 -m streamlit run app.py` opens that legacy interface on port 8501. Use the two local development commands above to see the current React/Vite application.
 
-`CAREERFIT_DATABASE_PATH` defaults to `/data/resume_analyzer.db` inside the container. The container runs as a non-root user. It does not need API credentials; the first semantic analysis requires internet access to download the model.
+## Tests and CI
 
-### Manage the container
+GitHub Actions runs the legacy unit tests, backend API tests, Python syntax compilation, React production build, and Docker image build. To run the tests locally:
 
 ```bash
-docker compose ps
-docker compose logs -f
-docker compose restart
-docker compose up --build
-docker compose down
+python -m pip install -r backend/requirements.txt
+python -m pytest -v tests
+cd backend && python -m pytest -v tests
+cd ../frontend && npm ci && npm run build
 ```
 
-`docker compose up --build` rebuilds the image after code or dependency changes. The Compose health check polls Streamlit's `/_stcore/health` endpoint; `docker compose ps` shows whether the service is healthy.
-
-### Persistent data and uploads
-
-Compose uses the named `careerfit_data` volume for SQLite and `careerfit_model_cache` for downloaded model files. Both survive container restarts, rebuilds, and `docker compose down`. `docker compose down --volumes` removes them, including the Docker analysis history and model cache.
-
-The ignored `resume_analyzer.db` in a local checkout is excluded from the image and is not modified by Docker. Docker starts with its own database in the named volume; this keeps local records safe and prevents personal history from being baked into the image. To bring local records into a **new, unused** Docker volume, start the service once so Compose creates its volume, then stop it and copy the database before recording any Docker analyses:
-
-```bash
-docker compose up --build -d
-docker compose stop careerfit
-docker compose cp resume_analyzer.db careerfit:/data/resume_analyzer.db
-docker compose start careerfit
-```
-
-Do not copy over a volume that already contains Docker analyses; that would replace its database file. Back up the database before any manual migration.
-
-Resume uploads are extracted from temporary files and removed after processing, matching the app's current privacy behavior. The repository's `resumes/` directory contains local sample files and is excluded from the image; it is not an upload store and is not mounted into the running service. Model files are persisted separately so they do not need to be downloaded after each container recreation.
-
-### Troubleshooting
-
-- **Port 8501 is in use:** stop the other service or change the host side of `ports` in `docker-compose.yml` (for example, `127.0.0.1:8502:8501`), then open the corresponding host port.
-- **The service is still starting:** check `docker compose logs -f` and `docker compose ps`. Initial imports can take longer on a cold machine.
-- **Semantic matching cannot load the model:** confirm outbound network access to Hugging Face; later runs use the persistent model cache.
-- **SQLite cannot write:** keep the named volume mounted at `/data`; do not mount a read-only directory or change the database path to a location outside the writable volume.
-- **Reset Docker data intentionally:** `docker compose down --volumes` deletes both named volumes. This is irreversible for data stored only in those volumes.
+Uploaded files are processed from temporary files and removed after parsing. Analysis history is local SQLite data; configure `CAREERFIT_DATABASE_PATH` to change its location.
